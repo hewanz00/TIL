@@ -1,0 +1,36 @@
+with witness1 as 
+(
+select id, name from person
+where name like 'annabel %'
+  ),
+  
+witness2 as
+(
+select name, max(address_number), id, license_id 
+from person where 
+address_street_name = 'Northwestern Dr'
+),
+
+witness_statements as 
+(
+select * from interview
+ left join witness1
+on witness1.id = interview.person_id
+left join witness2
+on witness2.id = interview.person_id
+where witness1.name is not null or witness2.name is not null
+  ),
+
+gfnm_48Z as
+(
+select * from get_fit_now_member
+  where id like '48Z%'
+)
+
+select * from drivers_license as dl
+join person as p 
+on p.license_id = dl.id
+ join gfnm_48Z
+on gfnm_48Z.name = p.name
+
+where plate_number like '%H42W%'
