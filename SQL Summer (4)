@@ -1,0 +1,49 @@
+with all_data as (
+select *, '01' as table_name from pd2023_wk04_january
+union all
+select *, '02' as table_name from pd2023_wk04_february
+union all
+select *, '03' as table_name from pd2023_wk04_march
+union all 
+select *, '04' as table_name from pd2023_wk04_april
+union all 
+select *, '05' as table_name from pd2023_wk04_may
+union all 
+select *, '06' as table_name from pd2023_wk04_june
+union all 
+select *, '07' as table_name from pd2023_wk04_july
+union all 
+select *, '08' as table_name from pd2023_wk04_august
+union all 
+select *, '09' as table_name from pd2023_wk04_september
+union all 
+select *, '10' as table_name from pd2023_wk04_october
+union all 
+select *, '11' as table_name from pd2023_wk04_november
+union all 
+select *, '12' as table_name from pd2023_wk04_december
+)
+
+--need to put in a cte; not sure why yet
+
+select id, to_varchar("Joining Day") as "Joining Day"
+, "Ethnicity", "Account Type", "Date of Birth",
+
+concat( "Joining Day", '/', "Month",  '/', '2023'
+) as "Joining Date"
+
+
+
+from all_data 
+pivot   ( 
+          max(VALUE) for DEMOGRAPHIC 
+          IN ('Ethnicity', 'Account Type', 'Date of Birth')
+          )
+          
+-- pivot = columns to rows. 
+    -- //agg(value//) for //column with column headers// in //spcific values for headers//
+          
+          as pvt (id, "Joining Day", "Month", "Ethnicity", "Account Type", "Date of Birth" )
+
+-- rename column headers above
+        
