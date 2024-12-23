@@ -1,0 +1,31 @@
+-- cte
+
+with t1_cte as (
+select 
+replace(replace(online_or_in_person, '1', 'Online'),'2', 'In-Person') as Online_or_In_Person1
+,quarter(to_date(transaction_date,'DD/MM/YYYY HH:mi:SS')) as Quarter1
+, sum(VALUE)as Value1
+from pd2023_wk01
+where transaction_code like 'DSB%'
+group by Online_or_In_Person1, Quarter1
+)
+
+-- main query
+select 
+to_double(replace (quarter, 'Q', '')) as "Quarter" -- second
+,online_or_in_person as "Online_or_In_Person"
+, value as "Quarterly Targets"
+, t1_cte.Value1 AS "Value"
+,  "Value" - "Quarterly Targets" as "Varience from Target"
+
+from pd2023_wk03_targets as t2
+
+unpivot (value for quarter in (Q1, Q2, Q3, Q4)) --first
+
+-- unpivot happens first and creates the Quarter column, then replace/double
+-- brining in all columns in this select incl ones from cte
+
+inner join t1_cte
+    on t1_cte.Online_or_In_Person1 = Online_or_In_Person
+    AND t1_cte.Quarter1 = "Quarter"
+

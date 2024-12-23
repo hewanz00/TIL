@@ -1,0 +1,30 @@
+-- output 1
+select 
+split_part(transaction_code, '-', 1) as "Bank"
+,SUM(VALUE) as "Value per Bank"
+
+from pd2023_wk01
+group by "Bank"
+
+
+
+-- output 2
+select 
+split_part(transaction_code, '-', 1) as "Bank"
+,replace(replace(online_or_in_person, '1', 'Online'),'2', 'In Person') as "Online or In Person"
+,dayname(to_date(transaction_date,'DD/MM/YYYY HH:mi:SS'))
+as "Day"
+,SUM(VALUE) as "Value per Bank"
+
+from pd2023_wk01
+group by "Bank", "Online or In Person", "Day"
+
+
+--output 3
+select 
+split_part(transaction_code, '-', 1) as "Bank"
+, customer_code as "Customer Code"
+, SUM(VALUE) as "Value per Bank"
+
+from pd2023_wk01
+group by "Customer Code", "Bank"

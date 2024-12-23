@@ -1,0 +1,8 @@
+
+select 
+transaction_id
+, concat('GB', CHECK_DIGITS, SWIFT_CODE, replace(sort_code, '-', ''), ACCOUNT_NUMBER) AS "IBAN"
+
+from pd2023_wk02_swift_codes as sc
+join pd2023_wk02_transactions as t
+on sc.bank = t.bank
