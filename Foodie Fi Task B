@@ -1,0 +1,171 @@
+select * from plans
+select * from subscriptions
+
+
+-- 1. how many customers all time? 1000
+
+select count(distinct customer_id) as no_customers from subscriptions
+
+-- 2. monthly distribution of trial start date? group by cont month
+
+select date_trunc('month', start_date) as start_month
+,  count(distinct customer_id) as no_customers 
+
+from subscriptions
+where plan_id = 0
+group by start_month
+
+-- 3. what plans start after 2020. breakdown by count of events per plan name
+
+select plan_name,count(distinct customer_id)
+from plans
+
+inner join subscriptions on plans.plan_id = subscriptions.plan_id
+where date_trunc('year', start_date) > '2020-01-01'
+group by plan_name
+
+-- 4. customer count and % churned customers. 307, 30.7%
+
+
+select count(distinct customer_id) as lost_customers
+
+from subscriptions
+where plan_id = '4'
+
+
+select count(distinct customer_id) as lost_customers,
+(select count(distinct customer_id) from subscriptions) as total_customers,
+round ( (lost_customers/ total_customers)*100, 1 ) as "churned_customers_%"
+
+from subscriptions 
+where plan_id = 4
+
+-- 5. customers churned straight after free trial %? 92 customers, 9%
+
+with cte_1 as(
+select *, ROW_NUMBER() OVER (PARTITION by customer_id order by start_date) as "stage"
+
+from subscriptions
+)
+
+select count(distinct customer_id) as lost_customers,
+(select count(distinct customer_id) from subscriptions) as total_customers,
+round ( (lost_customers/ total_customers)*100, 0 ) as "churned_customers_%"
+
+from cte_1 
+where "stage" = 2 and plan_id = 4
+
+-- 6. number and % of customer plans after trial? immediately after trial
+
+
+with cte_1 as (
+select *, ROW_NUMBER() OVER (PARTITION by customer_id order by start_date) as "stage"
+from subscriptions
+)
+
+select plan_id, count(distinct customer_id) as customers,
+(select count(distinct customer_id) from subscriptions) as total_customers,
+round ( (customers / total_customers)*100, 0) as "customer_%"
+
+from cte_1 
+where "stage" = 2 
+group by plan_id
+order by plan_id asc
+
+-- 7. customer count and % breakdown of all 5 plans up until 2020-12-31?
+with cte_1 as (
+select  plan_id, count (distinct customer_id) as customer_count,
+(select count(distinct customer_id) from subscriptions) as total_customers,
+round( (customer_count/ total_customers)*100, 0) as "customer_%"
+from subscriptions
+
+where start_date <= '2020-12-31'
+group by plan_id
+order by plan_id asc)
+
+select plan_name, customer_count, "customer_%" from plans
+inner join cte_1 on plans.plan_id = cte_1.plan_id
+
+
+-- 8. how many customers have upgraded to annual plan in 2020? 195
+
+select count(distinct customer_id) 
+from subscriptions
+where plan_id = 3 and year(start_date) = '2020'
+
+-- 9. how many days on avg for a customer to go to annual plan? 105 days
+
+with cte_1 as (
+select customer_id as customer_id_1, 
+start_date as trial_start_date,
+from subscriptions
+where plan_id = 0
+),
+
+cte_2 as (
+select customer_id,
+start_date as upgrade_date,
+from subscriptions
+where plan_id = 3)
+
+select 
+round(avg(datediff(day, trial_start_date, upgrade_date)), 0)
+from cte_1
+inner join cte_2 on cte_1.customer_id_1 = cte_2.customer_id
+
+
+-- 10. break above value down into 30 day periods
+
+with cte_1 as (
+select customer_id as customer_id_1, 
+start_date as trial_start_date,
+from subscriptions
+where plan_id = 0
+),
+
+cte_2 as (
+select customer_id,
+start_date as upgrade_date,
+from subscriptions
+where plan_id = 3)
+
+
+select 
+
+
+case
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=30  THEN '0-30'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=60  THEN '31-60'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=90  THEN '61-90'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=120  THEN '91-120'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=150  THEN '121-150'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=180  THEN '151-180'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=210  THEN '181-210'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=240  THEN '211-240'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=270  THEN '241-270'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=300  THEN '271-300'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=330  THEN '301-330'
+WHEN DATEDIFF('days',trial_start_date,upgrade_date)<=360  THEN '331-360'
+end as bin,
+count( customer_id)
+
+from cte_1
+inner join cte_2 on cte_1.customer_id_1 = cte_2.customer_id
+group by bin
+
+-- 11. no custmers downgraded from pro monthly to basic plan in 2020?
+
+with cte_1 as (
+select customer_id, start_date as basic_date
+from subscriptions
+where plan_id = 1)
+
+,cte_2 as (
+select customer_id as customer_id_2, start_date as pro_date
+from subscriptions
+where plan_id = 2
+)
+
+select customer_id, basic_date, pro_date  from cte_1 
+inner join cte_2 on cte_1.customer_id = cte_2.customer_id_2
+where basic_date > pro_date and year(basic_date) = '2020'
